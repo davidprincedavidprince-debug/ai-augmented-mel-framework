@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+me_pipeline.db
+.streamlit/secrets.toml
