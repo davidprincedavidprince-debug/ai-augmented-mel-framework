@@ -11,6 +11,7 @@ Run locally:  streamlit run app.py
 import json
 import streamlit as st
 import pandas as pd
+import fitz  # PyMuPDF
 
 import database as db
 import agents
@@ -18,6 +19,18 @@ import sample_data
 
 st.set_page_config(page_title="Hybrid Human-AI M&E Pipeline", layout="wide")
 db.init_db()
+
+
+def extract_text_from_upload(uploaded_file):
+    """Returns plain text from an uploaded PDF or .txt file."""
+    uploaded_file.seek(0)
+    name = uploaded_file.name.lower()
+    if name.endswith(".pdf"):
+        doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        return text.strip()
+    return uploaded_file.read().decode("utf-8", errors="ignore").strip()
 
 if "proposal_id" not in st.session_state:
     st.session_state.proposal_id = None
@@ -55,8 +68,19 @@ tabs = st.tabs([
 # ---------------- Stage 1 ----------------
 with tabs[0]:
     st.subheader("Stage 1 — Proposal review agent")
-    proposal_text = st.text_area("Paste a proposal (or use 'Load demo scenario')", height=200)
-    if st.button("Run extraction"):
+
+    uploaded_file = st.file_uploader("Upload the actual proposal (PDF or .txt)", type=["pdf", "txt"])
+    if uploaded_file is not None and st.session_state.get("last_upload_name") != uploaded_file.name:
+        st.session_state.proposal_text_area = extract_text_from_upload(uploaded_file)
+        st.session_state.last_upload_name = uploaded_file.name
+
+    proposal_text = st.text_area(
+        "Proposal text — auto-filled from upload above; edit freely, or paste/type directly instead",
+        height=250,
+        key="proposal_text_area",
+    )
+
+    if st.button("Run extraction") and proposal_text.strip():
         with st.spinner("Extracting..."):
             extracted = agents.review_proposal(proposal_text)
         pid = db.insert_proposal(proposal_text, extracted)
