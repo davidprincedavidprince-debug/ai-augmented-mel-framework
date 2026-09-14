@@ -165,6 +165,11 @@ with tabs[2]:
 # ---------------- Stage 4 ----------------
 with tabs[3]:
     st.subheader("Stage 4 — Continuous monitoring agent")
+    st.caption(
+        "Dual-engine design, matching Section 8.2 of the proposal: quantitative numbers move "
+        "through a plain, AI-free path (4a); qualitative narrative text is the only side the AI "
+        "ever touches (4b)."
+    )
     if not pid:
         st.warning("Complete stages 1-3 first.")
     else:
@@ -172,6 +177,55 @@ with tabs[3]:
         if not approved:
             st.warning("No approved indicators yet — approve at least one in stage 3.")
         else:
+            st.markdown("### 4a. Quantitative data (no AI, ever)")
+            st.caption(
+                "Plain structured numbers — Excel upload or manual entry. Nothing on this "
+                "sub-section calls the AI, by design. Represents the ODK/structured-tool feed in "
+                "a real deployment."
+            )
+            ind_options = {i["indicator_text"]: i["id"] for i in approved}
+
+            excel_file = st.file_uploader(
+                "Upload .xlsx with columns: indicator_text, value, unit, source", type=["xlsx"]
+            )
+            if excel_file is not None:
+                qdf = pd.read_excel(excel_file)
+                st.dataframe(qdf.head())
+                if st.button("Import rows"):
+                    text_to_id = {i["indicator_text"]: i["id"] for i in approved}
+                    imported, skipped = 0, 0
+                    for _, row in qdf.iterrows():
+                        ind_id = text_to_id.get(str(row.get("indicator_text", "")).strip())
+                        if ind_id is None:
+                            skipped += 1
+                            continue
+                        db.insert_quant_entry(
+                            ind_id, float(row.get("value", 0)), str(row.get("unit", "")),
+                            str(row.get("source", "excel_upload")), "excel_upload"
+                        )
+                        imported += 1
+                    st.success(f"Imported {imported} rows, skipped {skipped} (indicator text not found).")
+                    st.rerun()
+
+            qc1, qc2, qc3 = st.columns(3)
+            quant_sel = qc1.selectbox("Indicator", list(ind_options.keys()), key="quant_ind_sel")
+            quant_val = qc2.number_input("Value", value=0.0, key="quant_val")
+            quant_unit = qc3.text_input("Unit", value="%", key="quant_unit")
+            quant_source = st.text_input("Source note", value="manual entry", key="quant_source")
+            if st.button("Add quantitative entry"):
+                db.insert_quant_entry(ind_options[quant_sel], quant_val, quant_unit, quant_source, "manual_entry")
+                st.rerun()
+
+            for ind in approved:
+                q_entries = db.get_quant_entries(ind["id"])
+                if q_entries:
+                    st.write(f"**{ind['indicator_text']}**")
+                    st.dataframe(pd.DataFrame(q_entries)[["value", "unit", "source", "entry_method", "created_at"]])
+
+            st.divider()
+            st.markdown("### 4b. Qualitative field reports (AI-assisted)")
+            st.caption("Narrative text only — this is the one side of Stage 4 the AI ever touches.")
+
             col_a, col_b = st.columns(2)
             if col_a.button("🎲 Generate demo field reports for THIS proposal (AI)"):
                 with st.spinner("Generating field reports grounded in your approved indicators..."):
