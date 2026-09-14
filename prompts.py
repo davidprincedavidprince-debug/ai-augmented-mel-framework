@@ -129,3 +129,48 @@ Return strict JSON:
   "human_review_flag": "note anything here that needs human judgement before publishing, or null"
 }}
 Return ONLY the JSON object."""
+
+
+GENERATE_FIELD_REPORTS_PROMPT = """You are generating REALISTIC, FICTIONAL field-monitoring
+report excerpts for a demo, grounded in this project's actual approved indicators. Write them
+the way a human M&E field officer would — plain, specific, a little uneven, not polished.
+
+Approved indicators for this project:
+{indicators}
+
+Write exactly 3 short field report excerpts (2-4 sentences each), from different
+clusters/visits/months, with this deliberate mix:
+1. One report showing clear, credible progress toward one or more indicators (a success case).
+2. One report describing a genuine setback or negative event that undermines or contradicts one
+   of the indicators — written as it would naturally occur (an agreement falling through, a
+   target missed, a delay), not as an obvious test case.
+3. One report raising an informal, easy-to-miss gap or side detail that a standard indicator
+   checklist would not capture on its own.
+
+Return strict JSON: {{"field_reports": ["...", "...", "..."]}}
+Return ONLY the JSON object, no other text."""
+
+
+GENERATE_BENEFICIARY_FEEDBACK_PROMPT = """You are generating REALISTIC, FICTIONAL beneficiary
+feedback quotes for a demo, grounded in this project's actual approved indicators. Write them the
+way a beneficiary might actually speak in an interview — plain, first-person, not report language.
+
+Approved indicators for this project:
+{indicators}
+
+Write exactly 6 short feedback quotes (1-2 sentences each) with this deliberate mix, so a
+reviewer sees a genuine range of signal types:
+1. A quote that clearly SUPPORTS one of the indicators being achieved.
+2. A quote that CONTRADICTS one of the indicators despite echoing its key wording closely — for
+   example explicitly negating or reversing the exact outcome the indicator describes.
+3. A quote describing EXCLUSION or restriction — the benefit reaching only a subgroup, not
+   everyone the indicator implies.
+4. A quote that is positive but about a DIFFERENT aspect of the project than the main indicator
+   it might get compared against (tangential relevance).
+5. A quote describing a PROCESS or communication gap — for example not knowing who to contact,
+   or a promised follow-up that never happened.
+6. A quote raising an EQUITY or access outlier — someone effectively excluded from participating
+   or benefiting for a social, gender, or access-related reason.
+
+Return strict JSON: {{"beneficiary_feedback": ["...", "...", "...", "...", "...", "..."]}}
+Return ONLY the JSON object, no other text."""
