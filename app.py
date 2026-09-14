@@ -172,7 +172,18 @@ with tabs[3]:
         if not approved:
             st.warning("No approved indicators yet — approve at least one in stage 3.")
         else:
-            if st.button("Load demo field reports"):
+            col_a, col_b = st.columns(2)
+            if col_a.button("🎲 Generate demo field reports for THIS proposal (AI)"):
+                with st.spinner("Generating field reports grounded in your approved indicators..."):
+                    generated = agents.generate_demo_field_reports(approved)
+                for report_text in generated:
+                    result = agents.extract_field_report(report_text, approved)
+                    db.insert_field_report(
+                        pid, report_text, result,
+                        result.get("anomaly_detected", False), result.get("anomaly_reason")
+                    )
+                st.rerun()
+            if col_b.button("Load fixed demo field reports (farmer livelihoods scenario)"):
                 for report_text in sample_data.SAMPLE_FIELD_REPORTS:
                     result = agents.extract_field_report(report_text, approved)
                     db.insert_field_report(
@@ -208,7 +219,21 @@ with tabs[4]:
         st.warning("Complete stage 1 first.")
     else:
         st.markdown("### 5a. Collect beneficiary voice")
-        if st.button("Load demo beneficiary feedback"):
+
+        approved_for_gen = [i for i in db.get_indicators(pid) if i["status"] in ("approved", "edited")]
+        col_a, col_b = st.columns(2)
+        if approved_for_gen:
+            if col_a.button("🎲 Generate demo beneficiary feedback for THIS proposal (AI)"):
+                with st.spinner("Generating feedback grounded in your approved indicators..."):
+                    generated = agents.generate_demo_beneficiary_feedback(approved_for_gen)
+                    for text in generated:
+                        emb = agents.embed_text(text)
+                        db.insert_feedback(pid, text, emb)
+                st.success(f"Generated and embedded {len(generated)} feedback entries.")
+        else:
+            col_a.caption("Approve at least one indicator in stage 3 to generate matching feedback.")
+
+        if col_b.button("Load fixed demo feedback (farmer livelihoods scenario)"):
             with st.spinner("Embedding feedback..."):
                 for text in sample_data.SAMPLE_BENEFICIARY_FEEDBACK:
                     emb = agents.embed_text(text)
