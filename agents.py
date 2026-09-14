@@ -203,6 +203,22 @@ def synthesize_beneficiary_feedback(question, passages):
     return _generate_json(prompt)
 
 
+# ---------- Dynamic demo data generation (grounded in real approved indicators) ----------
+
+def generate_demo_field_reports(approved_indicators):
+    indicator_lines = "\n".join(f"- {i['indicator_text']}" for i in approved_indicators)
+    prompt = prompts.GENERATE_FIELD_REPORTS_PROMPT.format(indicators=indicator_lines)
+    result = _generate_json(prompt)
+    return result["field_reports"]
+
+
+def generate_demo_beneficiary_feedback(approved_indicators):
+    indicator_lines = "\n".join(f"- {i['indicator_text']}" for i in approved_indicators)
+    prompt = prompts.GENERATE_BENEFICIARY_FEEDBACK_PROMPT.format(indicators=indicator_lines)
+    result = _generate_json(prompt)
+    return result["beneficiary_feedback"]
+
+
 # ---------- Stage 6: Impact report generation ----------
 
 def generate_impact_report_section(indicator_text, evidence_list, beneficiary_synthesis_text):
