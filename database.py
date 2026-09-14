@@ -99,6 +99,22 @@ def init_db():
         FOREIGN KEY (feedback_id) REFERENCES beneficiary_feedback(id)
     )""")
 
+    # Quantitative entries: the AI-free half of the dual-engine design —
+    # plain structured numbers linked to an indicator, no LLM call ever
+    # touches this table. Mirrors Section 8.2's Pandas execution sandbox:
+    # numbers are moved and computed, never generated or interpreted by AI.
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS quant_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        indicator_id INTEGER,
+        value REAL,
+        unit TEXT,
+        source TEXT,           -- e.g. "field visit month 3", "ODK form batch 2"
+        entry_method TEXT,     -- "excel_upload" | "manual_entry"
+        created_at TEXT,
+        FOREIGN KEY (indicator_id) REFERENCES indicators(id)
+    )""")
+
     conn.commit()
     conn.close()
 
@@ -108,7 +124,7 @@ def reset_db():
     needing a full app reboot. Table structure is left intact."""
     conn = get_connection()
     cur = conn.cursor()
-    for table in ["dissonance_reviews", "impact_reports", "beneficiary_feedback", "field_reports", "indicators", "proposals"]:
+    for table in ["quant_entries", "dissonance_reviews", "impact_reports", "beneficiary_feedback", "field_reports", "indicators", "proposals"]:
         cur.execute(f"DELETE FROM {table}")
         cur.execute(f"DELETE FROM sqlite_sequence WHERE name = ?", (table,))
     conn.commit()
@@ -210,6 +226,28 @@ def set_indicator_embedding(indicator_id, embedding):
     )
     conn.commit()
     conn.close()
+
+
+# ---------- quantitative entries (no AI, ever) ----------
+
+def insert_quant_entry(indicator_id, value, unit, source, entry_method):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO quant_entries (indicator_id, value, unit, source, entry_method, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (indicator_id, value, unit, source, entry_method, _now()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_quant_entries(indicator_id):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM quant_entries WHERE indicator_id = ? ORDER BY id DESC", (indicator_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 # ---------- field reports (continuous monitoring) ----------
