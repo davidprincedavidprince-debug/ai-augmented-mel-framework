@@ -18,7 +18,7 @@ import prompts
 
 load_dotenv()
 
-TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-flash-latest")
+TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
 EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 
 _client = None
